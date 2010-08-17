@@ -37,6 +37,8 @@ import java.util.Set;
 
 import javax.inject.Qualifier;
 
+import org.jboss.weld.exceptions.IllegalArgumentException;
+import org.jboss.weld.resources.spi.ResourceLoader;
 import org.jboss.weld.util.Types;
 import org.slf4j.cal10n.LocLogger;
 import org.slf4j.ext.XLogger;
@@ -687,6 +689,18 @@ public class Reflections
          }
       }
       return null;
+   }
+   
+   public static Method parseMethod(String fqn, ResourceLoader resourceLoader)
+   {
+      if (fqn.lastIndexOf(".") < 0 && fqn.lastIndexOf(".") >= fqn.length())
+      {
+         throw new IllegalArgumentException(key, args);
+      }
+      String className = fqn.substring(0, fqn.lastIndexOf("."));
+      String methodName = fqn.substring(fqn.lastIndexOf(".") + 1);
+      Class<?> clazz = resourceLoader.classForName(className);
+      return clazz.getMethod(methodName);
    }
 
 }

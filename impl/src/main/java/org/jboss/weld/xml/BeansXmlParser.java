@@ -47,6 +47,7 @@ import org.xml.sax.SAXException;
 public class BeansXmlParser
 {
 
+   public static final String EXTENSIONS_NAMESPACE = "urn:cdi:extensions";
    public static final String NAMESPACE_URI = "http://java.sun.com/xml/ns/javaee";
 
    public BeansXml parse(final URL beansXml)
@@ -120,6 +121,21 @@ public class BeansXmlParser
       {
          return emptyList();
       }
+   }
+   private List<ScanningElement> findScanningElement(URL url, Element beans, XmlMessage multipleViolationMessage)
+   {
+      List<ScanningElement> elements = new ArrayList<ScanningElement>();
+      NodeList nodeList = beans.getElementsByTagNameNS(EXTENSIONS_NAMESPACE, "scan");
+      if (nodeList.getLength() > 1)
+      {
+         throw new DefinitionException(multipleViolationMessage);
+      }
+      else if (nodeList.getLength() == 1)
+      {
+         ScanningElement element = new ScanningElement(url, (Element) nodeList.item(0), resourceLoader);
+         elements.add(element);
+      }
+      return elements;
    }
 
    public BeansXml parse(Iterable<URL> urls)

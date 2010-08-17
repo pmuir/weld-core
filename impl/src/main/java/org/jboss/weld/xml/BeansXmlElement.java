@@ -72,6 +72,19 @@ class BeansXmlElement
       return classes;
    }
 
+   private static String findClassNameFromNode(Node node)
+   {
+      if (node instanceof Element)
+      {
+         if (node.getChildNodes().getLength() == 1 && node.getChildNodes().item(0) instanceof Text)
+         {
+            String className = ((Text) node.getChildNodes().item(0)).getData();
+            return className;
+         }
+      }
+      return null;
+   }
+
    @Override
    public String toString()
    {
