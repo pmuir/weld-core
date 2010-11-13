@@ -95,4 +95,11 @@ public class Cloud implements Serializable
       return "hail";
    }
    
+   public String blizzard()
+   {
+      this.name = "henry";
+      conversation.begin();
+      return "blizzard";
+   }
+   
 }

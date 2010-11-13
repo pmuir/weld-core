@@ -36,24 +36,27 @@ import org.jboss.weld.context.http.HttpConversationContext;
  * </p>
  * 
  * <p>
- * A request parameter was choosen to propagate the conversation because it's
- * the most technology agnostic approach for passing data between requests and
+ * A request parameter was chosen to propagate the conversation because it's the
+ * most technology agnostic approach for passing data between requests and
  * allows for the ensuing request to use whatever means necessary (a servlet
  * filter, phase listener, etc) to capture the conversation id and restore the
  * long-running conversation.
  * </p>
- * QUESTION should we do the same for getResourceURL?
- * TODO we should enable a way to disable conversation propagation by URL
  * 
  * @author Dan Allen
+ * @author Pete Muir
  */
 public class ConversationAwareViewHandler extends ViewHandlerWrapper
 {
-   private ViewHandler delegate;
+
+   private final ViewHandler delegate;
+   private final Instance<Context> context;
 
    public ConversationAwareViewHandler(ViewHandler delegate)
    {
       this.delegate = delegate;
+      Container container = Container.instance();
+      this.context = container.deploymentManager().instance().select(Context.class);
    }
 
    /**
@@ -61,39 +64,32 @@ public class ConversationAwareViewHandler extends ViewHandlerWrapper
     * long-running, append the conversation id request parameter to the query
     * string part of the URL, but only if the request parameter is not already
     * present.
-    *
-    * This covers all cases: form actions, link hrefs, Ajax calls, and redirect URLs. 
+    * 
+    * This covers form actions Ajax calls, and redirect URLs (which we want) and
+    * link hrefs (which we don't)
     * 
     * @see {@link ViewHandler#getActionURL(FacesContext, String)}
     */
    @Override
    public String getActionURL(FacesContext facesContext, String viewId)
    {
-      ConversationContext conversationContext = instance().select(HttpConversationContext.class).get();
-      String actionUrl = super.getActionURL(facesContext, viewId);
-      Conversation conversation = conversationContext.getCurrentConversation();
-      if (!conversation.isTransient())
+      if (facesContext.getRenderKit().getResponseStateManager().isPostback(facesContext))
       {
-         return new FacesUrlTransformer(actionUrl, facesContext).appendConversationIdIfNecessary(conversationContext.getParameterName(), conversation.getId()).getUrl();
+         ConversationContext conversationContext = context.select(HttpConversationContext.class).get();
+         String actionUrl = super.getActionURL(facesContext, viewId);
+         Conversation conversation = conversationContext.getCurrentConversation();
+         if (!conversation.isTransient())
+         {
+            return new FacesUrlTransformer(actionUrl, facesContext).appendConversationIdIfNecessary(conversationContext.getParameterName(), conversation.getId()).getUrl();
+         }
       }
-      else
-      {
-         return actionUrl;
-      }
+      return super.getActionURL(facesContext, viewId);
    }
 
-   /**
-    * @see {@link ViewHandlerWrapper#getWrapped()}
-    */
    @Override
    public ViewHandler getWrapped()
    {
       return delegate;
-   }
-   
-   private static Instance<Context> instance()
-   {
-      return Container.instance().deploymentManager().instance().select(Context.class);
    }
 
 }

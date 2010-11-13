@@ -21,22 +21,21 @@ import org.jboss.weld.resources.spi.ResourceLoader;
 import org.jboss.weld.util.ApiAbstraction;
 
 /**
- * Utility class for JSF related components, concepts etc. It can also
- * report on the compatibility of the current JSF implementation being used.
+ * Utility class for JSF related components, concepts etc. It can also report on
+ * the compatibility of the current JSF implementation being used.
  * 
  * @author Pete Muir
  * @author Dan Allen
  */
 public class JsfApiAbstraction extends ApiAbstraction implements Service
 {
-   
+
    // JSF FacesContext
    public final Class<?> FACES_CONTEXT;
-   
    public final Class<?> BEHAVIOR_CLASS;
-   
+
    public final double MINIMUM_API_VERSION;
-   
+
    public JsfApiAbstraction(ResourceLoader resourceLoader)
    {
       super(resourceLoader);
@@ -51,12 +50,15 @@ public class JsfApiAbstraction extends ApiAbstraction implements Service
          MINIMUM_API_VERSION = 1.2;
       }
    }
-   
+
    public boolean isApiVersionCompatibleWith(double version)
    {
       return MINIMUM_API_VERSION >= version;
    }
-   
-   public void cleanup() {}
+
+
+   public void cleanup()
+   {
+   }
 
 }

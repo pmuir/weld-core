@@ -15,27 +15,32 @@
  * limitations under the License.
  */
 package org.jboss.weld.jsf;
+
 import javax.faces.context.FacesContext;
 
 /**
  * Helper class for preparing JSF URLs which include the conversation id.
  * 
- * TODO This class has the potential to be better designed to make it fit more use cases.
+ * TODO This class has the potential to be better designed to make it fit more
+ * use cases.
  * 
  * @author Nicklas Karlsson
  * @author Dan Allen
  */
 public class FacesUrlTransformer
 {
+
+   private static final String SKIP_TRANSFORM = FacesUrlTransformer.class.getName() + ".skipTransform";
+
    private static final String HTTP_PROTOCOL_URL_PREFIX = "http://";
    private static final String HTTPS_PROTOCOL_URL_PREFIX = "https://";
    private static final String QUERY_STRING_DELIMITER = "?";
    private static final String PARAMETER_PAIR_DELIMITER = "&";
    private static final String PARAMETER_ASSIGNMENT_OPERATOR = "=";
-   
+
    private String url;
    private final FacesContext context;
-   
+
    public FacesUrlTransformer(String url, FacesContext facesContext)
    {
       this.url = url;
@@ -44,16 +49,71 @@ public class FacesUrlTransformer
 
    public FacesUrlTransformer appendConversationIdIfNecessary(String cidParameterName, String cid)
    {
-      int queryStringIndex = url.indexOf(QUERY_STRING_DELIMITER);
-      // if there is no query string or there is a query string but the cid param is absent, then append it
-      if (queryStringIndex < 0 || url.indexOf(cidParameterName + PARAMETER_ASSIGNMENT_OPERATOR, queryStringIndex) < 0)
-      {
-         url = new StringBuilder(url).append(queryStringIndex < 0 ? QUERY_STRING_DELIMITER : PARAMETER_PAIR_DELIMITER)
-            .append(cidParameterName).append(PARAMETER_ASSIGNMENT_OPERATOR).append(cid).toString();
-      }
+      appendParameterIfNeeded(url, cidParameterName, cid);
       return this;
    }
-   
+
+   private static String appendParameterIfNeeded(String url, String parameterName, String parameterValue)
+   {
+      int queryStringIndex = url.indexOf(QUERY_STRING_DELIMITER);
+      // if there is no query string or there is a query string but the param is
+      // absent, then append it
+      if (queryStringIndex < 0 || url.indexOf(parameterName + PARAMETER_ASSIGNMENT_OPERATOR, queryStringIndex) < 0)
+      {
+         StringBuilder builder = new StringBuilder(url);
+         if (queryStringIndex < 0)
+         {
+            builder.append(QUERY_STRING_DELIMITER);
+         }
+         else
+         {
+            builder.append(PARAMETER_PAIR_DELIMITER);
+         }
+         builder.append(parameterName).append(PARAMETER_ASSIGNMENT_OPERATOR);
+         if (parameterName != null)
+         {
+            builder.append(parameterValue);
+         }
+         return builder.toString();
+      }
+      else
+      {
+         return url;
+      }
+   }
+
+   private static String removeParameterIfNeeded(String url, String parameterName)
+   {
+      int queryStringIndex = url.indexOf(QUERY_STRING_DELIMITER);
+      // if there is no query string or there is a query string but the param is
+      // absent, then append it
+      if (queryStringIndex > 0)
+      {
+         int parameterIndex = url.indexOf(parameterName + PARAMETER_ASSIGNMENT_OPERATOR, queryStringIndex);
+         if (parameterIndex > 0)
+         {
+            StringBuilder builder = new StringBuilder();
+            builder.append(url.substring(0, parameterIndex));
+            int nextParameterIndex = url.indexOf("=", parameterIndex) + 1;
+            builder.append(url.substring(nextParameterIndex));
+            return builder.toString();
+         }
+      }
+      return url;
+   }
+
+   public FacesUrlTransformer skipTransform()
+   {
+      appendParameterIfNeeded(url, SKIP_TRANSFORM, null);
+      return this;
+   }
+
+   public FacesUrlTransformer removeSkipTransform(String cidParameterName)
+   {
+      removeParameterIfNeeded(url, SKIP_TRANSFORM);
+      return this;
+   }
+
    public String getUrl()
    {
       return url;
@@ -65,11 +125,11 @@ public class FacesUrlTransformer
       {
          String requestPath = context.getExternalContext().getRequestContextPath();
          url = url.substring(url.indexOf(requestPath) + requestPath.length());
-      } 
-      else 
+      }
+      else
       {
          int lastSlash = url.lastIndexOf("/");
-         if (lastSlash > 0) 
+         if (lastSlash > 0)
          {
             url = url.substring(lastSlash);
          }
@@ -87,7 +147,7 @@ public class FacesUrlTransformer
    {
       return context.getExternalContext().encodeActionURL(url);
    }
-   
+
    private boolean isUrlAbsolute()
    {
       // TODO: any API call to do this?

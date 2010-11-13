@@ -53,6 +53,7 @@ import org.junit.runner.RunWith;
 
 import com.gargoylesoftware.htmlunit.Page;
 import com.gargoylesoftware.htmlunit.WebClient;
+import com.gargoylesoftware.htmlunit.html.HtmlAnchor;
 import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.gargoylesoftware.htmlunit.html.HtmlSpan;
@@ -81,10 +82,32 @@ public class ClientConversationContextTest
                .addClasses(ConversationTestPhaseListener.class, Cloud.class, Thunderstorm.class, Hailstorm.class)
                .addWebResource(ClientConversationContextTest.class.getPackage(), "web.xml", "web.xml")
                .addWebResource(ClientConversationContextTest.class.getPackage(), "faces-config.xml", "faces-config.xml")
-               .addResource(ClientConversationContextTest.class.getPackage(), "cloud.jsf", "cloud.jspx")
-               .addResource(ClientConversationContextTest.class.getPackage(), "thunderstorm.jsf", "thunderstorm.jspx")
-               .addResource(ClientConversationContextTest.class.getPackage(), "hailstorm.jsf", "hailstorm.jspx")
+               .addResource(ClientConversationContextTest.class.getPackage(), "cloud.xhtml", "cloud.xhtml")
+               .addResource(ClientConversationContextTest.class.getPackage(), "thunderstorm.xhtml", "thunderstorm.xhtml")
+               .addResource(ClientConversationContextTest.class.getPackage(), "hailstorm.xhtml", "hailstorm.xhtml")
+               .addResource(ClientConversationContextTest.class.getPackage(), "blizzard.xhtml", "blizzard.xhtml")
                .addWebResource(EmptyAsset.INSTANCE, "beans.xml");
+   }
+   
+   @Test
+   public void testConversationNotPropagatedByHLink() throws Exception
+   {
+      WebClient client = new WebClient();
+    
+      // Access the start page
+      HtmlPage cloud = client.getPage(getPath("/cloud.jsf"));
+      String cloudName = getFirstMatchingElement(cloud, HtmlSpan.class, "cloudName").getTextContent();
+      assertEquals(Cloud.NAME, cloudName);
+      
+      // Now start a conversation and check the cloud name changes
+      HtmlPage blizzard = getFirstMatchingElement(cloud, HtmlSubmitInput.class, "blizzard").click();
+      cloudName = getFirstMatchingElement(blizzard, HtmlSpan.class, "cloudName").getTextContent();
+      assertEquals("henry", cloudName);
+      
+      // Now use the h:link to navigate back and check the conversation isn't propagated
+      cloud = getFirstMatchingElement(blizzard, HtmlAnchor.class, "cloud-link").click();
+      cloudName = getFirstMatchingElement(cloud, HtmlSpan.class, "cloudName").getTextContent();
+      assertEquals(Cloud.NAME, cloudName);
    }
    
    @Test
@@ -156,13 +179,13 @@ public class ClientConversationContextTest
    protected String getPath(String viewId, String cid)
    {
       // TODO: this should be moved out and be handled by Arquillian
-      return "http://localhost:8080/test/" + viewId + "?" + CID_REQUEST_PARAMETER_NAME + "=" + cid;
+      return "http://localhost:8080/test" + viewId + "?" + CID_REQUEST_PARAMETER_NAME + "=" + cid;
    }
    
    protected String getPath(String viewId)
    {
       // TODO: this should be moved out and be handled by Arquillian
-      return "http://localhost:8080/test/" + viewId;
+      return "http://localhost:8080/test" + viewId;
    }
    
    protected <T> Set<T> getElements(HtmlElement rootElement, Class<T> elementClass)
