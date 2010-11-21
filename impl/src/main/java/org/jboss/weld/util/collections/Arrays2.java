@@ -42,7 +42,7 @@ public class Arrays2
 
    public static <T> Set<T> asSet(T... array)
    {
-      Set<T> result = new HashSet<T>();
+      Set<T> result = new HashSet<T>(array.length);
       for (T a : array)
       {
          result.add(a);
