@@ -62,17 +62,18 @@ public class WeldValueExpression extends ForwardingValueExpression
    @Override
    public Object getValue(final ELContext context)
    {
-      // TODO need to use correct manager for module
-      ELCreationalContext<?> creationalContext = new ELCreationalContext<Object>(CONTEXTUAL);
       try
       {
-         getCreationalContextStore(context).push(creationalContext);
          return delegate().getValue(context);
       }
       finally
       {
-         getCreationalContextStore(context).pop();
-         creationalContext.release();
+         ELCreationalContextStack store = getCreationalContextStore(context);
+         if (!store.isEmpty())
+         {
+            CreationalContext<?> ctx = getCreationalContextStore(context).pop();
+            ctx.release();
+         }
       }
    }
    
