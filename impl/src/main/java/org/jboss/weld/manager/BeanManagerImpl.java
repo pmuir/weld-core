@@ -123,8 +123,10 @@ import org.jboss.weld.util.collections.IterableToIteratorFunction;
 import org.jboss.weld.util.reflection.HierarchyDiscovery;
 import org.jboss.weld.util.reflection.Reflections;
 
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 
 /**
@@ -153,7 +155,7 @@ public class BeanManagerImpl implements WeldManager, Serializable
     */
    
    // Contexts are shared across the application
-   private transient final ListMultimap<Class<? extends Annotation>, Context> contexts;
+   private transient Multimap<Class<? extends Annotation>, Context> contexts;
    
    // Client proxies can be used application wide
    private transient final ClientProxyProvider clientProxyProvider;
@@ -342,7 +344,7 @@ public class BeanManagerImpl implements WeldManager, Serializable
          List<String> namespaces,
          Map<EjbDescriptor<?>, SessionBean<?>> enterpriseBeans, 
          ClientProxyProvider clientProxyProvider, 
-         ListMultimap<Class<? extends Annotation>, Context> contexts, 
+         Multimap<Class<? extends Annotation>, Context> contexts, 
          Set<CurrentActivity> currentActivities, 
          Map<Contextual<?>, Contextual<?>> specializedBeans, 
          Enabled enabled,
@@ -963,7 +965,7 @@ public class BeanManagerImpl implements WeldManager, Serializable
       return clientProxyProvider;
    }
    
-   protected ListMultimap<Class<? extends Annotation>, Context> getContexts()
+   protected Multimap<Class<? extends Annotation>, Context> getContexts()
    {
       return contexts;
    }
@@ -1176,7 +1178,7 @@ public class BeanManagerImpl implements WeldManager, Serializable
       this.beans.clear();
       this.childActivities.clear();
       this.clientProxyProvider.clear();
-      this.contexts.clear();
+      this.contexts = null;
       this.currentActivities.clear();
       this.decoratorResolver.clear();
       this.decorators.clear();
@@ -1208,6 +1210,14 @@ public class BeanManagerImpl implements WeldManager, Serializable
    public Instance<Object> instance()
    {
       return InstanceImpl.of(Object.class, EMPTY_ANNOTATIONS, createCreationalContext(null), this);
+   }
+   
+   /**
+    * Fix is called post-bootstrap to fix certain collections which are immutable from then on
+    */
+   public void fix()
+   {
+      this.contexts = ImmutableMultimap.copyOf(contexts);
    }
    
 }

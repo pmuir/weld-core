@@ -408,6 +408,7 @@ public class WeldBootstrap implements Bootstrap
             entry.getValue().getBeanManager().getBeanResolver().clear();
             entry.getValue().getBeanManager().getObserverResolver().clear();
             entry.getValue().getBeanManager().getDecoratorResolver().clear();
+            entry.getValue().getBeanManager().fix();
             for (Bean<?> bean : entry.getValue().getBeanManager().getBeans())
             {
                if (bean instanceof RIBean<?>)
