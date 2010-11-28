@@ -97,8 +97,8 @@ public class ThreadLocalTestCase
          if(keyName != null)
          {
             Assert.assertFalse(
-                  "Verify found ThreadLocal variable key [" + keyName + "] does not belong to org.jboss, with value[" + entry.getValue() + "]", 
-                  keyName.startsWith("org.jboss"));   
+                  "ThreadLocal variable with key [" + keyName + "] with value[" + entry.getValue() + "] found", 
+                  keyName.startsWith("org.jboss.weld"));   
          }
       }
    }
