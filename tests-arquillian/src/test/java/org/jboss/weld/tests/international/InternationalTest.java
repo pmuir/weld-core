@@ -30,12 +30,9 @@ import org.jboss.shrinkwrap.api.BeanArchive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.weld.manager.BeanManagerImpl;
 import org.jboss.weld.test.el.EL;
-import org.jboss.weld.tests.category.Integration;
 import org.junit.Test;
-import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 
-@Category(Integration.class)
 @RunWith(Arquillian.class)
 public class InternationalTest 
 {
@@ -57,6 +54,6 @@ public class InternationalTest
       Object value = exprFactory.createValueExpression(elContext, "#{käyttäjä}", Object.class).getValue(elContext);
       
       assertNotNull(value);
-      assertTrue(Käyttäjä.class.isAssignableFrom(value.getClass()));
+      assertTrue(Kayttaja.class.isAssignableFrom(value.getClass()));
    }
 }

@@ -24,9 +24,9 @@ public class Producer
    
    @Produces 
    @Named("käyttäjä") 
-   public Käyttäjä haeKäyttäjä() 
+   public Kayttaja haeKäyttäjä() 
    { 
-      return new Käyttäjä(); 
+      return new Kayttaja(); 
    } 
 
 }
