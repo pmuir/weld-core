@@ -47,6 +47,7 @@ import org.jboss.shrinkwrap.api.asset.EmptyAsset;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.jboss.weld.tests.category.Integration;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -65,7 +66,7 @@ import com.gargoylesoftware.htmlunit.html.HtmlSubmitInput;
 @Category(Integration.class)
 @RunWith(Arquillian.class)
 @Run(RunModeType.AS_CLIENT)
-public class ClientConversationContextTest 
+public class ClientConversationContextTest
 {
 
    public static final String CID_REQUEST_PARAMETER_NAME = "cid";
@@ -75,29 +76,22 @@ public class ClientConversationContextTest
    public static final String LONG_RUNNING_HEADER_NAME = "org.jboss.jsr299.tck.longRunning";
 
    @Deployment
-   public static WebArchive createDeployment() 
+   public static WebArchive createDeployment()
    {
-      return ShrinkWrap.create(WebArchive.class, "test.war")
-               .addClasses(ConversationTestPhaseListener.class, Cloud.class, Thunderstorm.class, Hailstorm.class, Hurricane.class, Snowstorm.class)
-               .addWebResource(ClientConversationContextTest.class.getPackage(), "web.xml", "web.xml")
-               .addWebResource(ClientConversationContextTest.class.getPackage(), "faces-config.xml", "faces-config.xml")
-               .addResource(ClientConversationContextTest.class.getPackage(), "cloud.jsf", "cloud.jspx")
-               .addResource(ClientConversationContextTest.class.getPackage(), "thunderstorm.jsf", "thunderstorm.jspx")
-               .addResource(ClientConversationContextTest.class.getPackage(), "snowstorm.jsf", "/winter/snowstorm.jspx")
-               .addResource(ClientConversationContextTest.class.getPackage(), "hailstorm.jsf", "hailstorm.jspx")
-               .addWebResource(EmptyAsset.INSTANCE, "beans.xml");
+      return ShrinkWrap.create(WebArchive.class, "test.war").addClasses(ConversationTestPhaseListener.class, Cloud.class, Thunderstorm.class, Hailstorm.class, Hurricane.class, Snowstorm.class, LockingIssueBean.class).addWebResource(ClientConversationContextTest.class.getPackage(), "web.xml", "web.xml").addWebResource(ClientConversationContextTest.class.getPackage(), "faces-config.xml", "faces-config.xml").addResource(ClientConversationContextTest.class.getPackage(), "cloud.jsf", "cloud.jspx").addResource(ClientConversationContextTest.class.getPackage(), "thunderstorm.jsf", "thunderstorm.jspx").addResource(ClientConversationContextTest.class.getPackage(), "snowstorm.jsf", "/winter/snowstorm.jspx")
+            .addResource(ClientConversationContextTest.class.getPackage(), "hailstorm.jsf", "hailstorm.jspx").addResource(ClientConversationContextTest.class.getPackage(), "locking-issue.jsf", "locking-issue.jspx").addWebResource(EmptyAsset.INSTANCE, "beans.xml");
    }
-   
+
    @Test
    public void testConversationPropagationToNonExistentConversationLeadsException() throws Exception
    {
       WebClient client = new WebClient();
       client.setThrowExceptionOnFailingStatusCode(false);
       Page page = client.getPage(getPath("/cloud.jsf", "org.jboss.jsr299"));
-      
+
       Assert.assertEquals(500, page.getWebResponse().getStatusCode());
    }
-   
+
    @Test
    public void testRedirectToConversation() throws Exception
    {
@@ -110,58 +104,81 @@ public class ClientConversationContextTest
       name = getFirstMatchingElement(snowstorm, HtmlSpan.class, "snowstormName").getTextContent();
       assertEquals(Snowstorm.NAME, name);
    }
-   
+
+   @Test @Ignore
+   public void testLockingIssue() throws Exception
+   {
+      /*
+       * click start 
+       * click redirect 
+       * click dummy 
+       * refresh browser or retry url.
+       */
+      WebClient client = new WebClient();
+      client.setThrowExceptionOnFailingStatusCode(false);
+      HtmlPage page = client.getPage(getPath("/locking-issue.jsf"));
+      assertEquals("Gavin", getFirstMatchingElement(page, HtmlSpan.class, "name").getTextContent());
+      page = getFirstMatchingElement(page, HtmlSubmitInput.class, "start").click();
+      assertEquals("Pete", getFirstMatchingElement(page, HtmlSpan.class, "name").getTextContent());
+      String cid = getCid(page);
+      page = getFirstMatchingElement(page, HtmlSubmitInput.class, "dummy").click();
+      page = client.getPage(getPath("/locking-issue.jsf?cid=" + cid));
+      assertEquals("Pete", getFirstMatchingElement(page, HtmlSpan.class, "name").getTextContent());
+   }
+
    @Test
    public void testExceptionInPreDestroy() throws Exception
    {
       WebClient client = new WebClient();
-      
+
       // First, try a transient conversation
-      
+
       // Access a page that throws an exception
       client.getPage(getPath("/thunderstorm.jsf"));
-      
+
       // Then access another page that doesn't and check the contexts are ok
       HtmlPage cloud = client.getPage(getPath("/cloud.jsf"));
       String cloudName = getFirstMatchingElement(cloud, HtmlSpan.class, "cloudName").getTextContent();
       assertEquals(Cloud.NAME, cloudName);
-      
-      // Now start a conversation and access the page that throws an exception again
+
+      // Now start a conversation and access the page that throws an exception
+      // again
       HtmlPage thunderstorm = getFirstMatchingElement(cloud, HtmlSubmitInput.class, "beginConversation").click();
-      
+
       String thunderstormName = getFirstMatchingElement(thunderstorm, HtmlSpan.class, "thunderstormName").getTextContent();
       assertEquals(Thunderstorm.NAME, thunderstormName);
       cloud = getFirstMatchingElement(thunderstorm, HtmlSubmitInput.class, "cloud").click();
-      
-      // And navigate to another page, checking the conversation exists by verifying that state is maintained
+
+      // And navigate to another page, checking the conversation exists by
+      // verifying that state is maintained
       cloudName = getFirstMatchingElement(cloud, HtmlSpan.class, "cloudName").getTextContent();
       assertEquals("bob", cloudName);
    }
-   
+
    @Test
    public void testInvalidateCallsPreDestroy() throws Exception
    {
       WebClient client = new WebClient();
-            
+
       // Now start a conversation
       HtmlPage cloud = client.getPage(getPath("/cloud.jsf"));
       cloud = getFirstMatchingElement(cloud, HtmlSubmitInput.class, "hurricane").click();
-      
+
       // Invalidate the session
       cloud = getFirstMatchingElement(cloud, HtmlSubmitInput.class, "invalidateSession").click();
       String cloudDestroyed = getFirstMatchingElement(cloud, HtmlSpan.class, "cloudDestroyed").getTextContent();
       assertEquals("true", cloudDestroyed);
    }
-   
+
    @Test
    public void testInvalidateThenRedirect() throws Exception
    {
       WebClient client = new WebClient();
-            
+
       // Now start a conversation
       HtmlPage cloud = client.getPage(getPath("/cloud.jsf"));
       cloud = getFirstMatchingElement(cloud, HtmlSubmitInput.class, "hurricane").click();
-      
+
       // Now invalidate the session and redirect
       cloud = getFirstMatchingElement(cloud, HtmlSubmitInput.class, "sleet").click();
 
@@ -169,32 +186,34 @@ public class ClientConversationContextTest
       String cloudName = getFirstMatchingElement(cloud, HtmlSpan.class, "cloudName").getTextContent();
       assertEquals(Cloud.NAME, cloudName);
    }
-   
+
    @Test
    public void testExceptionInPostConstruct() throws Exception
    {
       WebClient client = new WebClient();
-      
+
       // First, try a transient conversation
-      
+
       client.setThrowExceptionOnFailingStatusCode(false);
-      
+
       // Access a page that throws an exception
       client.getPage(getPath("/hailstorm.jsf"));
-      
+
       // Then access another page that doesn't and check the contexts are ok
       HtmlPage cloud = client.getPage(getPath("/cloud.jsf"));
       String cloudName = getFirstMatchingElement(cloud, HtmlSpan.class, "cloudName").getTextContent();
       assertEquals(Cloud.NAME, cloudName);
-      
-      // Now start a conversation and access the page that throws an exception again
+
+      // Now start a conversation and access the page that throws an exception
+      // again
       HtmlPage hailstorm = getFirstMatchingElement(cloud, HtmlSubmitInput.class, "hail").click();
-      
+
       String cid = getCid(hailstorm);
-      
+
       cloud = client.getPage(getPath("/cloud.jsf", cid));
-      
-      // And navigate to another page, checking the conversation exists by verifying that state is maintained
+
+      // And navigate to another page, checking the conversation exists by
+      // verifying that state is maintained
       cloudName = getFirstMatchingElement(cloud, HtmlSpan.class, "cloudName").getTextContent();
       assertEquals("gavin", cloudName);
    }
@@ -204,48 +223,48 @@ public class ClientConversationContextTest
       // TODO: this should be moved out and be handled by Arquillian
       return "http://localhost:8080/test/" + viewId + "?" + CID_REQUEST_PARAMETER_NAME + "=" + cid;
    }
-   
+
    protected String getPath(String viewId)
    {
       // TODO: this should be moved out and be handled by Arquillian
       return "http://localhost:8080/test/" + viewId;
    }
-   
+
    protected <T> Set<T> getElements(HtmlElement rootElement, Class<T> elementClass)
    {
-     Set<T> result = new HashSet<T>();
-     
-     for (HtmlElement element : rootElement.getAllHtmlChildElements())
-     {
-        result.addAll(getElements(element, elementClass));
-     }
-     
-     if (elementClass.isInstance(rootElement))
-     {
-        result.add(elementClass.cast(rootElement));
-     }
-     return result;
-     
+      Set<T> result = new HashSet<T>();
+
+      for (HtmlElement element : rootElement.getAllHtmlChildElements())
+      {
+         result.addAll(getElements(element, elementClass));
+      }
+
+      if (elementClass.isInstance(rootElement))
+      {
+         result.add(elementClass.cast(rootElement));
+      }
+      return result;
+
    }
-   
+
    protected String getCid(Page page)
    {
       String url = page.getWebResponse().getRequestUrl().toString();
       return url.substring(url.indexOf("cid=") + 4);
    }
- 
+
    protected <T extends HtmlElement> T getFirstMatchingElement(HtmlPage page, Class<T> elementClass, String id)
    {
-     
-     Set<T> inputs = getElements(page.getBody(), elementClass);
-     for (T input : inputs)
-     {
+
+      Set<T> inputs = getElements(page.getBody(), elementClass);
+      for (T input : inputs)
+      {
          if (input.getId().contains(id))
          {
             return input;
          }
-     }
-     return null;
+      }
+      return null;
    }
 
 }
