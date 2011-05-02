@@ -36,6 +36,7 @@ import javax.ejb.Startup;
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
+import javax.persistence.PersistenceContextType;
 import javax.transaction.UserTransaction;
 
 import org.jboss.weld.examples.pastecode.model.CodeFragment;
@@ -90,7 +91,17 @@ public class PopulateDatabase
             c.setText(st.nextToken());
 
             // Manual TX control, commit each record independently
-            entityManager.persist(c);
+            try 
+            {
+               utx.begin();
+               entityManager.persist(c);
+               utx.commit();
+            } 
+            catch (Exception e) 
+            {
+               utx.rollback();
+            } 
+            
          }
       }
       catch (Exception e)

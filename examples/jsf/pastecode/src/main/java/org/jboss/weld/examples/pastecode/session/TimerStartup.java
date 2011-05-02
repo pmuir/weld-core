@@ -14,13 +14,15 @@ import javax.ejb.Startup;
 public class TimerStartup
 {
    
-   @EJB // Due to EJBTHREE-2227 this can't be @Inject
-   private CodeFragmentPrinter codeFragmentPrinter;
+   // **** DISABLED AS JBOSS AS 7 DOESther
+   
+   //@EJB // Due to EJBTHREE-2227 this can't be @Inject
+   //private CodeFragmentPrinter codeFragmentPrinter;
    
    @PostConstruct
    public void startup()
    {
-      codeFragmentPrinter.startTimer();
+      //codeFragmentPrinter.startTimer();
    }
 
 }
